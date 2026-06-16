@@ -1,0 +1,28 @@
+[package]
+name = "chat_webapp"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { version = "0.8.9", features = ["ws"] }
+tokio = { version = "1", features = ["full"] }
+futures-util = { version = "0.3.32", default-features = false, features = [
+    "sink",
+] }
+sqlx = { version = "0.9", features = [
+    "runtime-tokio",
+    "tls-native-tls",
+    "sqlite",
+] }
+tera = "1.19"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dashmap = "6.2.1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"
+rand = "0.10.1" # for random names
+chrono = "0.4" # for timestamps
+rustls-acme = { version = "0.15.3", features = ["axum"] }
+axum-server = { version = "0.8", features = ["rustls"] }
+dotenvy = "0.15.7"

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Chat room</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+        }
+
+        #messages {
+            border: 1px solid #ccc;
+            height: 400px;
+            overflow-y: scroll;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 0.5rem;
+        }
+
+        .meta {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .text {
+            word-break: break-word;
+        }
+
+        #message-input {
+            width: 80%;
+            padding: 0.5rem;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 id="room-name"></h1>
+    <div id="messages"></div>
+    <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
+    <button id="send-btn">Send</button>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user_id');
+        const roomId = window.location.pathname.split('/').pop();
+        const user = JSON.parse(sessionStorage.getItem('user'));
+
+        if (!user || !userId) window.location.href = '/';
+
+        // Fetch message history
+        fetch(`/api/rooms/${roomId}/history?t=${Date.now()}`)
+            .then(res => res.json())
+            .then(messages => {
+                const container = document.getElementById('messages');
+                messages.reverse().forEach(msg => {
+                    appendMessage(msg);
+                });
+            });
+
+        // WebSocket connection (auto wss:// on HTTPS)
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/${roomId}?user_id=${userId}`;
+        const ws = new WebSocket(wsUrl);
+
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            appendMessage(msg);
+        };
+
+        function appendMessage(msg) {
+            const container = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = 'message';
+            div.innerHTML = `
+                <div class="meta">${msg.user_name} (${msg.role}) • ${new Date(msg.timestamp).toLocaleTimeString()}</div>
+                <div class="text">${escapeHtml(msg.content)}</div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        document.getElementById('send-btn').onclick = () => {
+            const input = document.getElementById('message-input');
+            const content = input.value.trim();
+            if (!content) return;
+            ws.send(JSON.stringify({
+                content,
+                user_id: parseInt(userId),
+                room_id: parseInt(roomId)
+            }));
+            input.value = '';
+        };
+
+        document.getElementById('message-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('send-btn').click();
+        });
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, function (m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+    </script>
+</body>
+
+</html>

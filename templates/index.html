@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Chat MVP</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        button {
+            font-size: 1.5rem;
+            margin: 1rem;
+            padding: 0.5rem 1.5rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Welcome to Class Chat</h1>
+    <label for="username">Enter your name:</label>
+    <input type="text" id="username" name="username">
+    <p>Choose your role:</p>
+    <button onclick="selectRole('Parent')">Parent</button>
+    <button onclick="selectRole('Teacher')">Teacher</button>
+
+    <script>
+        async function selectRole(role) {
+            const rawName = document.getElementById('username').value || '';
+            const name = rawName.trim() || `${role}+${Math.floor(Math.random() * 1000) + 1}`;
+            const res = await fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role, name })
+            });
+            const user = await res.json();
+            sessionStorage.setItem('user', JSON.stringify(user));
+            window.location.href = '/rooms';
+        }
+    </script>
+</body>
+
+</html>

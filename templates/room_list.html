@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Choose a room</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 600px;
+            margin: 2rem auto;
+        }
+
+        .room {
+            display: block;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f0f0f0;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .room:hover {
+            background: #e0e0e0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Available rooms</h1>
+    <div id="rooms-list">Loading...</div>
+    <script>
+        const user = JSON.parse(sessionStorage.getItem('user'));
+        if (!user) window.location.href = '/';
+
+        fetch(`/api/rooms?role=${user.role}`)
+            .then(res => res.json())
+            .then(rooms => {
+                const container = document.getElementById('rooms-list');
+                container.innerHTML = rooms.map(room => `
+                    <a class="room" href="/room/${room.id}?user_id=${user.id}">
+                        <strong>${room.name}</strong>
+                    </a>
+                `).join('');
+            });
+    </script>
+</body>
+
+</html>
