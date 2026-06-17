@@ -4,7 +4,7 @@ use axum::{
         Path, Query, State, WebSocketUpgrade,
         ws::{Message as AxumMessage, Utf8Bytes, WebSocket},
     },
-    http::Uri,
+    http::{StatusCode, Uri},
     response::{Html, IntoResponse, Redirect},
     routing::{get, post},
 };
@@ -25,6 +25,8 @@ use database::{create_user, get_message_history, get_rooms, init_db, insert_mess
 use message::{MessagePayload, NewMessage};
 use room::RoomId;
 use user::{User, UserId, UserRole};
+
+use crate::database::clear_table;
 
 type Timestamp = i64;
 type Tx = UnboundedSender<Result<AxumMessage, axum::Error>>;
@@ -114,8 +116,36 @@ async fn history_handler(
         Err(e) => {
             error!("Failed to get message history: {e}");
             (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
                 "Could not load message history",
+            )
+                .into_response()
+        }
+    }
+}
+
+async fn clear_messages_handler(State(state): State<AppState>) -> impl IntoResponse {
+    match clear_table(&state.pool, "messages").await {
+        Ok(count) => (StatusCode::OK, format!("Deleted {} messages", count)).into_response(),
+        Err(e) => {
+            error!("Failed to clear messages: {e}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to clear messages: {e}"),
+            )
+                .into_response()
+        }
+    }
+}
+
+async fn clear_users_handler(State(state): State<AppState>) -> impl IntoResponse {
+    match clear_table(&state.pool, "users").await {
+        Ok(count) => (StatusCode::OK, format!("Deleted {} users", count)).into_response(),
+        Err(e) => {
+            error!("Failed to clear users: {e}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to clear users"),
             )
                 .into_response()
         }
@@ -307,6 +337,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/users", post(create_user_handler))
         .route("/api/rooms", get(get_rooms_handler))
         .route("/api/rooms/{room_id}/history", get(history_handler))
+        .route("/api/clear/messages", get(clear_messages_handler))
+        .route("/api/clear/users", get(clear_users_handler))
         .route("/ws/{room_id}", get(ws_handler))
         .with_state(state);
 

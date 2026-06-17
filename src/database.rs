@@ -26,6 +26,16 @@ pub async fn init_db(pool: &SqlitePool) -> anyhow::Result<()> {
     Ok(())
 }
 
+pub async fn clear_table(pool: &SqlitePool, table: &str) -> anyhow::Result<u64> {
+    Ok(
+        sqlx::query(sqlx::AssertSqlSafe(format!("DELETE FROM {table};"))) // user AssertSqlSafe() wrapper
+            .bind(table)
+            .execute(pool)
+            .await?
+            .rows_affected(),
+    )
+}
+
 pub async fn create_user(pool: &SqlitePool, name: String, role: UserRole) -> anyhow::Result<User> {
     let id = sqlx::query_scalar::<_, UserId>(
         "INSERT INTO users (name, role) VALUES (?, ?) RETURNING id",
